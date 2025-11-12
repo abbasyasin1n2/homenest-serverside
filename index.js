@@ -48,31 +48,28 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Store collections globally
-let propertiesCollection;
-let ratingsCollection;
+// Store database reference globally
+let database;
 
-// Connect to MongoDB
-async function run() {
+// Connect to MongoDB and return database
+async function connectToDatabase() {
+  if (database) {
+    return database;
+  }
+  
   try {
     await client.connect();
     console.log("Successfully connected to MongoDB!");
-
-    const database = client.db("homenestDB");
-    propertiesCollection = database.collection("properties");
-    ratingsCollection = database.collection("ratings");
-
-    // Ping MongoDB (commented for Vercel deployment)
-    // await client.db("admin").command({ ping: 1 });
-    // console.log("MongoDB connection verified!");
-
+    database = client.db("homenestDB");
+    return database;
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
+    throw error;
   }
 }
 
-// Initialize connection
-run().catch(console.dir);
+// Initialize connection for serverless
+connectToDatabase().catch(console.dir);
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -84,6 +81,9 @@ app.get('/', (req, res) => {
 // Get all properties (with optional search and sort)
 app.get('/api/properties', async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    
     const { search, sortBy, sortOrder } = req.query;
     
     let query = {};
@@ -111,6 +111,9 @@ app.get('/api/properties', async (req, res) => {
 // Get featured properties (6 most recent for homepage)
 app.get('/api/properties/featured', async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    
     const properties = await propertiesCollection
       .find()
       .sort({ createdAt: -1 })
@@ -125,6 +128,9 @@ app.get('/api/properties/featured', async (req, res) => {
 // Get single property by ID
 app.get('/api/properties/:id', async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    
     const id = req.params.id;
     const query = { _id: new ObjectId(id) };
     const property = await propertiesCollection.findOne(query);
@@ -142,6 +148,9 @@ app.get('/api/properties/:id', async (req, res) => {
 // Get ratings for a specific property
 app.get('/api/ratings/property/:propertyId', async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const ratingsCollection = db.collection("ratings");
+    
     const propertyId = req.params.propertyId;
     const ratings = await ratingsCollection
       .find({ propertyId })
@@ -158,6 +167,9 @@ app.get('/api/ratings/property/:propertyId', async (req, res) => {
 // Add a new property (Protected)
 app.post('/api/properties', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    
     const property = req.body;
     
     // Verify the user email matches the token
@@ -178,6 +190,9 @@ app.post('/api/properties', verifyToken, async (req, res) => {
 // Get properties by user email (Protected - My Properties)
 app.get('/api/properties/user/:email', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    
     const email = req.params.email;
     
     // Verify the user can only access their own properties
@@ -198,6 +213,9 @@ app.get('/api/properties/user/:email', verifyToken, async (req, res) => {
 // Update a property (Protected)
 app.put('/api/properties/:id', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    
     const id = req.params.id;
     const updatedProperty = req.body;
 
@@ -236,6 +254,10 @@ app.put('/api/properties/:id', verifyToken, async (req, res) => {
 // Delete a property (Protected)
 app.delete('/api/properties/:id', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const propertiesCollection = db.collection("properties");
+    const ratingsCollection = db.collection("ratings");
+    
     const id = req.params.id;
 
     // First, get the existing property
@@ -264,6 +286,9 @@ app.delete('/api/properties/:id', verifyToken, async (req, res) => {
 // Add a rating/review (Protected)
 app.post('/api/ratings', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const ratingsCollection = db.collection("ratings");
+    
     const rating = req.body;
     
     // Verify the user email matches the token
@@ -283,6 +308,9 @@ app.post('/api/ratings', verifyToken, async (req, res) => {
 // Get ratings by user email (Protected - My Ratings)
 app.get('/api/ratings/user/:email', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const ratingsCollection = db.collection("ratings");
+    
     const email = req.params.email;
     
     // Verify the user can only access their own ratings
@@ -303,6 +331,9 @@ app.get('/api/ratings/user/:email', verifyToken, async (req, res) => {
 // Delete a rating (Protected)
 app.delete('/api/ratings/:id', verifyToken, async (req, res) => {
   try {
+    const db = await connectToDatabase();
+    const ratingsCollection = db.collection("ratings");
+    
     const id = req.params.id;
 
     const existingRating = await ratingsCollection.findOne({ _id: new ObjectId(id) });
