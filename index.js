@@ -12,7 +12,9 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Firebase Admin SDK
-const serviceAccount = require("./homenest-clientside-firebase-adminsdk-fbsvc-7a462d44f7.json");
+// Decode base64 service key from environment variable
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -303,9 +305,9 @@ async function run() {
       }
     });
 
-    // Ping MongoDB
-    await client.db("admin").command({ ping: 1 });
-    console.log("MongoDB connection verified!");
+    // Ping MongoDB (commented for Vercel deployment)
+    // await client.db("admin").command({ ping: 1 });
+    // console.log("MongoDB connection verified!");
 
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
