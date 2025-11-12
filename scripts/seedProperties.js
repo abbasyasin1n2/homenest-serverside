@@ -458,9 +458,9 @@ async function seed() {
     await propertiesCollection.deleteMany({ propertyName: { $in: propertyNames } });
     await propertiesCollection.insertMany(seedProperties);
 
-    console.log(`✅ Successfully seeded ${seedProperties.length} properties.`);
+    console.log(` Successfully seeded ${seedProperties.length} properties.`);
   } catch (error) {
-    console.error('❌ Failed to seed properties:', error);
+    console.error(' Failed to seed properties:', error);
   } finally {
     await client.close();
   }
