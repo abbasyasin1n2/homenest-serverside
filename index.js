@@ -281,6 +281,28 @@ async function run() {
       }
     });
 
+    // Delete a rating (Protected)
+    app.delete('/api/ratings/:id', verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const existingRating = await ratingsCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!existingRating) {
+          return res.status(404).send({ message: 'Rating not found' });
+        }
+
+        if (existingRating.reviewerEmail !== req.user.email) {
+          return res.status(403).send({ message: 'Forbidden - You can only delete your own reviews' });
+        }
+
+        const result = await ratingsCollection.deleteOne({ _id: new ObjectId(id) });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: 'Error deleting rating', error: error.message });
+      }
+    });
+
     // Ping MongoDB
     await client.db("admin").command({ ping: 1 });
     console.log("MongoDB connection verified!");
