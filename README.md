@@ -1,67 +1,94 @@
-# HomeNest Server - API Documentation
+# HomeNest Server - Backend API
 
-## Base URL
-```
-http://localhost:3000
-```
+This is the Express.js backend for the HomeNest real estate portal. It handles all database operations, user authentication verification, and provides REST API endpoints for the frontend.
 
-## Authentication
-Protected routes require Bearer token in Authorization header:
-```
-Authorization: Bearer <firebase_token>
-```
+---
+
+## What It Does
+
+The server manages two main collections in MongoDB: properties and ratings.
+
+For properties, it handles creating new listings, fetching all properties with search/sort/filter support, updating existing listings, and deleting properties. All modification operations require authentication and verify that the user owns the property before allowing changes.
+
+For ratings, it stores user reviews with star ratings, fetches all reviews for a specific property, gets reviews submitted by a specific user, and allows users to delete their own reviews.
+
+Authentication is handled through Firebase Admin SDK. When the frontend sends a request to a protected route, it includes a Firebase token in the Authorization header. The server verifies this token with Firebase, extracts the user's email, and then checks if the user has permission to perform the requested action.
+
+---
 
 ## API Endpoints
 
 ### Public Routes
 
-#### GET /
-Health check endpoint
+**Properties:**
+- `GET /api/properties` – Get all properties (supports search, sort)
+- `GET /api/properties/featured` – Get 6 most recent properties
+- `GET /api/properties/:id` – Get single property details
 
-#### GET /api/properties
-Get all properties with optional search and sort
-- Query params: `search`, `sortBy`, `sortOrder`
+**Ratings:**
+- `GET /api/ratings/property/:propertyId` – Get all reviews for a property
 
-#### GET /api/properties/featured
-Get 6 most recent properties for homepage
+### Protected Routes (Require Firebase Token)
 
-#### GET /api/properties/:id
-Get single property by ID
+**Properties:**
+- `POST /api/properties` – Create new property
+- `GET /api/properties/user/:email` – Get user's properties
+- `PUT /api/properties/:id` – Update property (ownership verified)
+- `DELETE /api/properties/:id` – Delete property (ownership verified)
 
-#### GET /api/ratings/property/:propertyId
-Get all ratings for a specific property
+**Ratings:**
+- `POST /api/ratings` – Submit a review
+- `GET /api/ratings/user/:email` – Get user's reviews
+- `DELETE /api/ratings/:id` – Delete review (ownership verified)
 
-### Protected Routes (Require Authentication)
+---
 
-#### POST /api/properties
-Add a new property
+## Authentication Flow
 
-#### GET /api/properties/user/:email
-Get all properties by user email
+1. User logs in on the frontend using Firebase Authentication
+2. Frontend receives a JWT token from Firebase
+3. Frontend includes this token in the `Authorization: Bearer <token>` header for all API requests
+4. Server's `verifyToken` middleware validates the token with Firebase Admin SDK
+5. If valid, the decoded user info (email, uid) is attached to the request
+6. Route handlers check if the user has permission to perform the action
 
-#### PUT /api/properties/:id
-Update a property (owner only)
+For example, when updating a property, the server first checks if the property exists, then verifies that the `userEmail` field matches the authenticated user's email before allowing the update.
 
-#### DELETE /api/properties/:id
-Delete a property (owner only)
+---
 
-#### POST /api/ratings
-Add a rating/review
+## Database Collections
 
-#### GET /api/ratings/user/:email
-Get all ratings by user email
+### Properties
+Each property document includes basic info (name, description, price, location, image), category data (Land/Plot, Commercial, Apartment), type-specific fields (bedrooms for apartments, floor details for commercial), rental fields if applicable (price unit, deposit, available date), features array, and timestamps.
 
-## Setup
+### Ratings
+Each rating document includes the property reference (ID, name, category, location), reviewer info (name, email), the actual rating (1-5 stars and review text), and timestamp.
 
-1. Create `.env` file with:
-```
-DB_USER=your_mongodb_username
-DB_PASSWORD=your_mongodb_password
-PORT=3000
-```
+---
 
-2. Start server:
-```
-npm start
-```
+## Technologies Used
 
+- **Express.js** – Web framework
+- **MongoDB** – Database with Mongoose-free native driver
+- **Firebase Admin SDK** – Authentication verification
+- **CORS** – Cross-origin resource sharing
+- **dotenv** – Environment variables
+
+The server uses MongoDB's native driver instead of Mongoose to keep things simple and lightweight. All database queries use promises and async/await for clean, readable code.
+
+---
+
+## Environment Variables
+
+The server expects a `.env` file with:
+- `DB_USER` – MongoDB username
+- `DB_PASSWORD` – MongoDB password
+- `PORT` – Server port (default 3000)
+
+It also requires the Firebase Admin SDK JSON file in the root directory for authentication.
+
+---
+
+## Running the Server
+
+Start with `npm start` or use `npm run dev` for development mode with nodemon auto-restart. The seed script can be run with `npm run seed:properties` to populate the database with sample listings.
