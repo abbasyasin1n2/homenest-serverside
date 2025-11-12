@@ -11,15 +11,14 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize Firebase Admin SDK
-// Decode base64 service key from environment variable
+// Firebase Admin SDK
 const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString("utf8");
 const serviceAccount = JSON.parse(decoded);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-// MongoDB Connection
+// MongoDB
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.cnkbmnh.mongodb.net/?appName=Cluster0`;
 const client = new MongoClient(uri, {
   serverApi: {
@@ -29,7 +28,7 @@ const client = new MongoClient(uri, {
   }
 });
 
-// Firebase Authentication Middleware
+// Auth Middleware
 const verifyToken = async (req, res, next) => {
   const authorization = req.headers.authorization;
   
@@ -48,10 +47,8 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
-// Store database reference globally
+// Database connection
 let database;
-
-// Connect to MongoDB and return database
 async function connectToDatabase() {
   if (database) {
     return database;
@@ -68,17 +65,16 @@ async function connectToDatabase() {
   }
 }
 
-// Initialize connection for serverless
 connectToDatabase().catch(console.dir);
 
-// ==================== PUBLIC ROUTES ====================
+// PUBLIC ROUTES
 
 // Health check
 app.get('/', (req, res) => {
   res.send('HomeNest Server is running successfully!');
 });
 
-// Get all properties (with optional search and sort)
+// Get all properties
 app.get('/api/properties', async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -108,7 +104,7 @@ app.get('/api/properties', async (req, res) => {
   }
 });
 
-// Get featured properties (6 most recent for homepage)
+// Get featured properties
 app.get('/api/properties/featured', async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -162,9 +158,9 @@ app.get('/api/ratings/property/:propertyId', async (req, res) => {
   }
 });
 
-// ==================== PROTECTED ROUTES ====================
+// PROTECTED ROUTES
 
-// Add a new property (Protected)
+// Add property
 app.post('/api/properties', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -187,7 +183,7 @@ app.post('/api/properties', verifyToken, async (req, res) => {
   }
 });
 
-// Get properties by user email (Protected - My Properties)
+// Get user properties
 app.get('/api/properties/user/:email', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -210,7 +206,7 @@ app.get('/api/properties/user/:email', verifyToken, async (req, res) => {
   }
 });
 
-// Update a property (Protected)
+// Update property
 app.put('/api/properties/:id', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -251,7 +247,7 @@ app.put('/api/properties/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Delete a property (Protected)
+// Delete property
 app.delete('/api/properties/:id', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -283,7 +279,7 @@ app.delete('/api/properties/:id', verifyToken, async (req, res) => {
   }
 });
 
-// Add a rating/review (Protected)
+// Add rating
 app.post('/api/ratings', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -305,7 +301,7 @@ app.post('/api/ratings', verifyToken, async (req, res) => {
   }
 });
 
-// Get ratings by user email (Protected - My Ratings)
+// Get user ratings
 app.get('/api/ratings/user/:email', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -328,7 +324,7 @@ app.get('/api/ratings/user/:email', verifyToken, async (req, res) => {
   }
 });
 
-// Delete a rating (Protected)
+// Delete rating
 app.delete('/api/ratings/:id', verifyToken, async (req, res) => {
   try {
     const db = await connectToDatabase();
@@ -353,12 +349,11 @@ app.delete('/api/ratings/:id', verifyToken, async (req, res) => {
   }
 });
 
-// For local development
+// Local development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(port, () => {
     console.log(`HomeNest Server listening on port ${port}`);
   });
 }
 
-// Export for Vercel
 module.exports = app;
