@@ -1,4 +1,5 @@
 # HomeNest Server - Backend API
+**Live Site:** https://homenestserver.vercel.app/
 
 This is the Express.js backend for the HomeNest real estate portal. It handles all database operations, user authentication verification, and provides REST API endpoints for the frontend.
 
